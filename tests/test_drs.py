@@ -33,7 +33,7 @@ These tests give coverage of all of DRS.py apart from certain
 trivial error conditions (e.g. invalid problem specifications)
 """
 
-import drs
+from drs import drs_module as drs
 import pytest
 import numpy as np
 from scipy.stats import dirichlet

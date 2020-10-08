@@ -12,8 +12,11 @@ Implementation of the Dirichlet Rescale Algorithm
 
 Requirements: Python 3.7
 
-Limits: Maximum number of tasks = 102 
-        (due to volume of 103D standard simplex underflowing floats)
+Limits: Tested Max number of tasks: 100
+        Untested Max number of tasks: 1015
+        Cayley Megner Deterimant of standard 1016D simplex overflows
+        64-bit floating point, and Numpy's linalg module refuses to
+        use 128-bit floating points.
 
 Note: For best performance, you must disable NumPy's default multithreading. drs
 attempts to do so on import, unless the DRS_USE_NUMPY_MP environment variable is
@@ -29,7 +32,9 @@ import os
 from typing import Iterable, Dict, List, Optional, Tuple, Union, Sequence, NamedTuple
 import warnings
 from functools import lru_cache
-
+import math
+import random
+    
 # Disable Numpy multithreading. In development, with OpenBLAS, it was observed
 # that there was a significant penalty for using multithreading in this manner.
 # Unfortunately the authors do not have the ability to test the other
@@ -54,33 +59,49 @@ try:
 except AttributeError:
     warnings.warn(f'Numpy does not have high precision floating point support available, using DTYPE={DTYPE}')
 
+USE_MPMATH = 'DRS_USE_MPMATH' in os.environ
+
+if USE_MPMATH:
+    from mpmath import mpf
+    warnings.warn('Using mpmath everywhere is slow and probably breaks uniformity of outputs.')
+    DTYPE = mpf  # This is a bad idea
+    
 
 from scipy.stats import dirichlet  # type: ignore
 from scipy.spatial import distance  # type: ignore
 from math import inf, factorial
 
 
-def simplex_volume(vertices: np.array) -> float:
-    """Implementation of the Cayley-Megner Determinant method for calculating
-    simplex volume, see:
-    https://en.wikipedia.org/wiki/Distance_geometry#Cayley%E2%80%93Menger_determinants"""
+def scaled_dirichlet(n: int, u: float) -> List[float]:
+    """A Python implementation of the Standard Dirichlet. This is
+    faster than using scipy.dirichlet for single values"""
+    assert n > 0
+    if n == 1: return [u]
+    intermediate = [-math.log(1 - random.random()) for _ in range(n)]
+    divisor = sum(intermediate)
+    return [x*u/divisor for x in intermediate]
+
+
+def cm_matrix_det_ns(vertices: np.ndarray) -> float:
+    """This computes the Cayley-Megner Matrix determinant, and then
+    normalises its sign based on what the normal simplex volume
+    calculation would do. It does not normalise the the values as
+    this calculation tends to break floating points for n > 102.
+    The resulting value can be used to determine which of two
+    n-dimensional simplicies is bigger, but little else."""
     vertices = np.asarray(vertices, dtype=DTYPE)
     square_dists = distance.pdist(vertices, metric='sqeuclidean')
     number_of_vertices = distance.num_obs_y(square_dists)
     bordered_values = np.concatenate((np.ones(number_of_vertices), square_dists))
     distance_matrix = distance.squareform(bordered_values)
-    coefficient = - (-2) ** (number_of_vertices - 1) * np.math.factorial(number_of_vertices - 1) ** 2
-    try:    
-        det = np.linalg.det(distance_matrix)
-        volume_square = det / coefficient
-    except OverflowError:
-        # If overflow, then try again using logarithmic methods and approximation
-        sign, logdet = np.linalg.slogdet(distance_matrix)
-        det = sign * np.exp(logdet, dtype=DTYPE)
-        volume_square = int(det) / coefficient
-    if volume_square <= 0:
-        raise ValueError('Degenerate or otherwise invalid simplex')
-    return np.sqrt(volume_square)
+    det = np.linalg.det(distance_matrix)
+    if vertices.size % 2 == 1:
+        det = -det
+    if det <= 0:
+        raise ValueError('Degenerate or invalid simplex')
+    return det
+
+simplex_volume = cm_matrix_det_ns
 
 
 def embed_mult_debed(matrix: np.array, vec: np.array) -> np.array:
@@ -157,7 +178,10 @@ def power_scale(limits: np.array, vec: np.array) -> np.ndarray:
 @lru_cache(maxsize=1024)
 def standard_simplex_vol(sz: int):
     """Returns the volume of the sz-dimensional standard simplex"""
-    return simplex_volume(np.identity(sz, dtype=DTYPE))
+    result = simplex_volume(np.identity(sz, dtype=DTYPE))
+    if result == inf:
+        raise ValueError(f'Cannot compute volume of standard {sz}-simplex')
+    return result
 
 
 def __rescale(limits: np.array, coord: np.array, max_rescales: int=1000,
@@ -212,6 +236,8 @@ def __ssr(limits: np.array, coord: np.array) -> Tuple[Union[float, int], Optiona
         limits_simplex_vol = 0
     except FloatingPointError:
         limits_simplex_vol = 0
+    print(limits)
+    print(limits_simplex_vol, standard_simplex_vol(limits.size))
     if limits_simplex_vol < standard_simplex_vol(limits.size):
         matrix = rmss(limits_simplex)
         new_limits = embed_mult_debed(matrix, np.zeros(limits.size))
@@ -251,9 +277,9 @@ def drs_i(ntasks: int, max_utilisation: float, upper_constraints: Optional[Seque
        Returns number of iterations required and point"""
     if upper_constraints is None:
         if lower_constraints is None:
-            result = dirichlet.rvs([1]*ntasks)[0] * max_utilisation    
+            result = scaled_dirichlet(ntasks, max_utilisation)
         else:
-            transformed_result = dirichlet.rvs([1]*ntasks)[0] * (max_utilisation - sum(lower_constraints))
+            transformed_result = scaled_dirichlet(ntasks, max_utilisation - sum(lower_constraints))
             result = [o + l for o, l in zip(transformed_result, lower_constraints)]
         return DRSInstrumentedResult(result, result, 0, 0)
     if lower_constraints is not None:
@@ -276,7 +302,7 @@ def drs_i(ntasks: int, max_utilisation: float, upper_constraints: Optional[Seque
         raise ValueError(f'Upper constraints must sum to more than max_utilisation')
     limits = [min(1, u/max_utilisation) for u in upper_constraints]
     for count in range(DRS_RETRIES):
-        initial_point = dirichlet.rvs([1]*len(limits), 1)[0]
+        initial_point = scaled_dirichlet(ntasks, 1)
         iterations_required, final_unit_point = ssr(limits, initial_point)
         if final_unit_point is not None:
             break
