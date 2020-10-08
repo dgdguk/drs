@@ -26,11 +26,13 @@ generating a large number of vectors with the same constraints).
 If you wish to cite this work, please use the following reference:
 
 ```bibtex
-@article{Griffin_2020,
- author = {Griffin, D. and Bate, I and Davis, R. I.},
- year = {2020},
- journal = {41st IEEE Real-Time Systems Symposium (RTSS 2020)},
- title = {Generating Utilization Vectors for the Systematic Evaluation of Schedulability Tests}
+@inproceedings{GriffinRTSS2020,
+  author = {David Griffin and Iain Bate and Robert I. Davis},
+  title = {Generating Utilization Vectors for the Systematic Evaluation of Schedulability Tests},
+  booktitle = {{IEEE} Real-Time Systems Symposium, {RTSS} 2020, Houston, Texas, USA
+  December 1-4, 2020},
+  publisher = {{IEEE}},
+  year = {2020},
 }
 ```
 
@@ -54,7 +56,7 @@ The parameters are as follows
 * `n`: The number of values to generate
 * `sumu`: The target sum for the generated values
 * `upper_constraints`: An optional sequence of length `n` which gives the upper constraints on each returned value. If given, then `all(x < y for x, y in zip(output, upper_constraints))`
-* `upper_constraints`: An optional sequence of length `n` which gives the lower constraints on each returned value. If given, then `all(x > y for x, y in zip(output, lower_constraints))`
+* `lower_constraints`: An optional sequence of length `n` which gives the lower constraints on each returned value. If given, then `all(x > y for x, y in zip(output, lower_constraints))`
 
 # Examples
 
