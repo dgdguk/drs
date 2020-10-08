@@ -313,8 +313,8 @@ def drs_i(ntasks: int, max_utilisation: float, upper_constraints: Optional[Seque
         final_point, initial_point, iterations_required, count)
 
 
-def drs(ntasks: int, max_utilisation: float, upper_constraints: Optional[Sequence[float]]=None,
+def drs(n: int, sumu: float, upper_constraints: Optional[Sequence[float]]=None,
         lower_constraints: Optional[Sequence[float]]=None) -> np.array:
     """Interface of the DRS algorithm with no instrumentation.
     Only returns the final point."""
-    return drs_i(ntasks, max_utilisation, upper_constraints, lower_constraints).output_point
+    return drs_i(n, sumu, upper_constraints, lower_constraints).output_point

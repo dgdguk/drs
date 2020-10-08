@@ -44,8 +44,8 @@ For general usage, there is only one function to consider
 def drs(
   n: int, 
   sumu: float, 
-  upper_constraints: Optional[Sequence[Union[int, float]]],
-  lower_constraints: Optional[Sequence[Union[int, float]]]
+  upper_constraints: Optional[Sequence[Union[int, float]]]=None,
+  lower_constraints: Optional[Sequence[Union[int, float]]]=None
 ) -> Sequence[float]: ...
 ```
 
