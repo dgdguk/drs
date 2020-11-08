@@ -4,8 +4,8 @@ The Dirichlet-Rescale (DRS) algorithm is a method for generating
 vectors of random numbers such that:
 
 1. The values of the vector sum to a given total U
-2. Given a vector of upper constraints, each element of the returned vector is less than its corresponding upper constraint
-3. Given a vector of lower constraints, each element of the returned vector is greater than its corresponding lower constraint
+2. Given a vector of upper bounds, each element of the returned vector is less than its corresponding upper bound
+3. Given a vector of lower bounds, each element of the returned vector is greater than its corresponding lower bound
 4. The distribution of the vectors in the space defined by the constraints is uniform.
 
 DRS accomplishes this by drawing an initial point from the flat Dirichlet
@@ -23,18 +23,37 @@ for UUnifast. It may not always be appropriate to use as a replacement
 for RandFixedSum as there are cases where RandFixedSum is faster (when
 generating a large number of vectors with the same constraints).
 
-If you wish to cite this work, please use the following reference:
+The algorithm is described in more detail in the publication
+"Generating Utilization Vectors for the Systematic Evaluation of
+Schedulability Tests", published at RTSS 2020. The authors version
+can be found here: https://www-users.cs.york.ac.uk/~robdavis/papers/DRSRTSS2020.pdf
+
+If you wish to cite this work, please use the following references:
 
 ```bibtex
 @inproceedings{GriffinRTSS2020,
   author = {David Griffin and Iain Bate and Robert I. Davis},
   title = {Generating Utilization Vectors for the Systematic Evaluation of Schedulability Tests},
-  booktitle = {{IEEE} Real-Time Systems Symposium, {RTSS} 2020, Houston, Texas, USA
+  booktitle = {{IEEE} Real-Time Systems Symposium, {RTSS} 2020, Houston, Texas, USA},
   December 1-4, 2020},
   publisher = {{IEEE}},
   year = {2020},
+  url = {https://www-users.cs.york.ac.uk/~robdavis/papers/DRSRTSS2020.pdf}
+}
+
+@software{david_griffin_2020_4118059,
+  author = {David Griffin and Iain Bate and Robert I. Davis},
+  title = {dgdguk/drs},
+  publisher = {Zenodo},
+  version = {latest}
+  doi = {10.5281/zenodo.4118058},
+  url = {https://doi.org/10.5281/zenodo.4118058}
 }
 ```
+
+If citing the software itself, please cite the correct version (the DOI
+of the above reference always resolves to the most recent version; the DOIs
+of specific versions can be found there).
 
 DRS is licensed under the MIT license.
 
@@ -46,8 +65,8 @@ For general usage, there is only one function to consider
 def drs(
   n: int, 
   sumu: float, 
-  upper_constraints: Optional[Sequence[Union[int, float]]]=None,
-  lower_constraints: Optional[Sequence[Union[int, float]]]=None
+  upper_bounds: Optional[Sequence[Union[int, float]]]=None,
+  lower_bounds: Optional[Sequence[Union[int, float]]]=None
 ) -> Sequence[float]: ...
 ```
 
@@ -55,8 +74,8 @@ The parameters are as follows
 
 * `n`: The number of values to generate
 * `sumu`: The target sum for the generated values
-* `upper_constraints`: An optional sequence of length `n` which gives the upper constraints on each returned value. If given, then `all(x < y for x, y in zip(output, upper_constraints))`
-* `lower_constraints`: An optional sequence of length `n` which gives the lower constraints on each returned value. If given, then `all(x > y for x, y in zip(output, lower_constraints))`
+* `upper_bounds`: An optional sequence of length `n` which gives the upper bounds on each returned value. If given, then `all(x <= y for x, y in zip(output, upper_bounds))`
+* `lower_bounds`: An optional sequence of length `n` which gives the lower bounds on each returned value. If given, then `all(x >= y for x, y in zip(output, lower_bounds))`
 
 # Examples
 
@@ -72,19 +91,19 @@ from drs import drs
 result = drs(2, 3, [1.5, 3])
 ```
 
-Will produce vectors of length two such that `result[0] < 1.5`, `result[1] < 3`, and `sum(result) == 3`.
+Will produce vectors of length two such that `result[0] <= 1.5`, `result[1] <= 3`, and `sum(result) == 3`.
 
 ```python
 from drs import drs
 result = drs(2, 4, [2, 3], [1, 2])
 ```
 
-Will produce vectors of length two such that `1 < result[0] < 2`, `2 < result[1] < 3`, and `sum(result) == 4`.
+Will produce vectors of length two such that `1 <= result[0] <= 2`, `2 <= result[1] <= 3`, and `sum(result) == 4`.
 
 # Other functions
 
-Due to the amount of entropy in a floating point being finite, and DRS's nature as a *rescaling* algorithm, it is possible for DRS to exhaust it's source of entropy. This behaviour is controlled by the *epsilon* parameter, which defaults to `10**-4`. DRS only guarantees that the values returned sum to within *epsilon* of the target utilisation, and that only the part of the result greater than *epsilon* is uniformly distributed. If more precision is required, the `set_epsilon(epsilon: float)` function can be used to adjust the epsilon parameter.
+Due to the amount of entropy in a floating point being finite, and DRS's nature as a *rescaling* algorithm, it is possible for DRS to exhaust it's source of entropy. This behaviour is controlled by the *epsilon* parameter, which defaults to `10**-4`. DRS only guarantees that the values returned sum to within `sumu*epsilon` of the target, and that only the part of the result greater than `sumu*epsilon` is uniformly distributed. If more precision is required, the `set_epsilon(epsilon: float)` function can be used to adjust the epsilon parameter.
 
 # Limits
 
-The maximum size of output vector DRS can produce is theoretically capped at 1015 for versions of Python that use 64-bit floats. In practice it's expected that this will be too computationally expensive for practical use. DRS has been tested to produce output vectors of up to size 200.
+The maximum size of output vector DRS can produce is theoretically capped at 1015 for versions of Python that use 64-bit floats. In practice it's expected that this will be too computationally expensive for practical use. DRS has been tested to produce output vectors of up to size 200, however above 140 it may be necessary to use the optional mpmath support. Consult drs.py for more information.

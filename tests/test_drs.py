@@ -18,8 +18,8 @@ as some basic tests that indicate there is nothing fundamentally
 wrong with the DRS algorithm and that the interfaces provided
 work as advertised with the constraints of a single function call.
 However, these tests alone will not guarantee the uniformity
-of distributions, and so more in-depth analyses (such as those
-carried out in make_figure_13_data.py) are needed.
+of distributions, and so more in-depth analyses are needed. The
+authors refer to the publication for the details of these analyses.
 
 These tests are designed to be run with the PyTest unit testing
 framework i.e. run 'pytest tests.py'
@@ -35,7 +35,6 @@ trivial error conditions (e.g. invalid problem specifications)
 
 from drs import drs_module as drs
 import pytest
-import numpy as np
 from scipy.stats import dirichlet
 import random
 
@@ -61,7 +60,7 @@ def generate_constraints_random(ntasks, total):
     sumv = sum(vals)
     ret = [x * (total / sumv) for x in vals]
     assert abs(sum(ret) - total) < 1e-5  # Allows for some floating point error
-    return ret
+    return list(ret)
 
 
 def generate_constraints_dirichlet(ntasks, total):
@@ -70,7 +69,7 @@ def generate_constraints_dirichlet(ntasks, total):
     Distribution"""
     ret = dirichlet.rvs([1]*ntasks)[0] * total
     assert abs(sum(ret) - total) < 1e-5  # Allows for some floating point error
-    return ret
+    return list(ret)
 
     
 def test_drs_no_constraints():
@@ -83,15 +82,17 @@ def test_drs_no_constraints():
             assert all(x > 0 for x in result)
             assert all(x < 1 for x in result)
 
+
 @pytest.mark.parametrize('constraint_gen', [generate_constraints_dirichlet, generate_constraints_random])
-def test_drs_lower_constraints(constraint_gen):
-    """Test DRS with lower constraints. Checks no lower constraint is
+def test_drs_lower_bounds(constraint_gen):
+    """Test DRS with lower bounds. Checks no lower bound is
     broken, and that the returned values sum to within drs.EPSILON of 1"""
     for n in NTASKS_LIST:
         for _ in range(REPEATS):
-            lower_constraints = constraint_gen(n, LOWER_CONSTRAINT_TOTAL)
-            result = drs.drs(n, 1, lower_constraints=lower_constraints)
-            assert all(x > y for x, y in zip(result, lower_constraints))
+            lower_bounds = constraint_gen(n, LOWER_CONSTRAINT_TOTAL)
+            util = 1.0
+            result = drs.drs(n, util, lower_bounds=lower_bounds)
+            assert all(x > y for x, y in zip(result, lower_bounds))
             assert abs(1 - sum(result)) < drs.EPSILON
             assert all(x < 1 for x in result)
 
@@ -102,26 +103,60 @@ def test_drs_upper_constraints(constraint_gen):
     broken, and that the returned values sum to within drs.EPSILON of 1"""
     for n in NTASKS_LIST:
         for _ in range(REPEATS):
-            upper_constraints = constraint_gen(n, UPPER_CONSTRAINT_TOTAL)
-            result = drs.drs(n, 1, upper_constraints)
-            assert all(x < y for x, y in zip(result, upper_constraints))
+            upper_bounds = constraint_gen(n, UPPER_CONSTRAINT_TOTAL)
+            result = drs.drs(n, 1, upper_bounds)
+            assert all(x < y for x, y in zip(result, upper_bounds))
             assert abs(1 - sum(result)) < drs.EPSILON
             assert all(x > 0 for x in result)
 
 
-@pytest.mark.parametrize('constraint_gen', [generate_constraints_dirichlet, generate_constraints_random])
-def test_drs_upper_and_lower_constraints(constraint_gen):
+@pytest.mark.parametrize('constraint_gen,insert_fixed_point', [
+    [generate_constraints_dirichlet, True], 
+    [generate_constraints_dirichlet, False],
+    [generate_constraints_random, True], 
+    [generate_constraints_random, False]
+])
+def test_drs_upper_and_lower_constraints(constraint_gen, insert_fixed_point):
     """Test DRS with both upper and lower constraints. Checks no constraint is
     broken, and that the returned values sum to within drs.EPSILON of 1"""
     for n in NTASKS_LIST:
         x = 0
         while x < REPEATS:
-            upper_constraints = constraint_gen(n, UPPER_CONSTRAINT_TOTAL)
-            lower_constraints = constraint_gen(n, LOWER_CONSTRAINT_TOTAL)
-            if all(l < u for l, u in zip(lower_constraints, upper_constraints)):
-                result = drs.drs(n, 1, upper_constraints, lower_constraints)
-                assert all(x < y for x, y in zip(result, upper_constraints))
-                assert all(x > y for x, y in zip(result, lower_constraints))
+            upper_bounds = constraint_gen(n, UPPER_CONSTRAINT_TOTAL)
+            lower_bounds = constraint_gen(n, LOWER_CONSTRAINT_TOTAL)
+            if all(l < u for l, u in zip(lower_bounds, upper_bounds)):
+                util = 1
+                i = 0
+                if insert_fixed_point:
+                    position = random.randint(0, n-1)
+                    fixed_point = random.random()
+                    assert isinstance(lower_bounds, list)
+                    assert isinstance(upper_bounds, list)
+                    lower_bounds.insert(position, fixed_point)
+                    upper_bounds.insert(position, fixed_point)
+                    util += fixed_point
+                    i = 1
+                assert sum(lower_bounds) <= util
+                result = drs.drs(n+i, util, upper_bounds, lower_bounds)
+                if insert_fixed_point:
+                    assert isinstance(result, list)
+                    fixed_point_returned = result.pop(position)
+                    assert fixed_point_returned == fixed_point
+                    upper_bounds.pop(position)
+                    lower_bounds.pop(position)
+                    assert len(upper_bounds) == len(result)
+                assert all([x < y for x, y in list(zip(result, upper_bounds))])
+                assert all(x > y for x, y in zip(result, lower_bounds))
                 assert abs(1 - sum(result)) < drs.EPSILON
                 x += 1
 
+
+@pytest.mark.parametrize('constraint_gen', [generate_constraints_dirichlet, generate_constraints_random])
+def test_drs_fixed_point(constraint_gen):
+    """Test to see that DRS works with constraints where only a single
+    point is valid"""
+    for n in NTASKS_LIST:
+        for _ in range(REPEATS):
+            constraints = constraint_gen(n, 1)
+            result = drs.drs(n, sum(constraints), constraints, constraints)
+            assert result == constraints

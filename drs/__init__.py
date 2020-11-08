@@ -17,16 +17,16 @@ If you need something else, it can be imported from drs.drs, but this is only
 really needed if you're doing things such as evaluating the internals of the
 DRS algorithm.
 
-Note: For best performance, you must disable NumPy's default multithreading. drs
-attempts to do so on import, unless the DRS_USE_NUMPY_MP environment variable is
-set. However, for this to work you must import drs *before* importing NumPy,
-as the vector libraries that provide NumPy's multithreading are configured by
-environment variables, and only check these variables at import time (i.e. if you
-import numpy before DRS, it's too late and NumPy will be using multithreading)
+See drs.py for more detailed documentation.
 """
 
 from . import drs as drs_module
-from .drs import drs
+from .drs import drs as drs
 
 def set_epsilon(epsilon: float):
+    """Set the EPSILON parameter. Results are accurate to within EPSILON"""
     drs_module.EPSILON = epsilon
+
+def set_retries(retries: int):
+    """Sets the number of retries for DRS"""
+    drs_module.DRS_RETRIES = retries
