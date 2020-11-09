@@ -4,8 +4,8 @@ The Dirichlet-Rescale (DRS) algorithm is a method for generating
 vectors of random numbers such that:
 
 1. The values of the vector sum to a given total U
-2. Given a vector of upper bounds, each element of the returned vector is less than its corresponding upper bound
-3. Given a vector of lower bounds, each element of the returned vector is greater than its corresponding lower bound
+2. Given a vector of upper bounds, each element of the returned vector is less than or equal to its corresponding upper bound
+3. Given a vector of lower bounds, each element of the returned vector is greater or equal to than its corresponding lower bound
 4. The distribution of the vectors in the space defined by the constraints is uniform.
 
 DRS accomplishes this by drawing an initial point from the flat Dirichlet
@@ -17,13 +17,14 @@ these operations and minimising the effects of the rescale operations
 (floating point error, running out of the finite amount of entropy
 encoded in the initial point).
 
-DRS can be thought of as a more generalised version of the UUnifast
-or RandFixedSum algorithms. In general it can be used as a replacement
-for UUnifast. It may not always be appropriate to use as a replacement
-for RandFixedSum as there are cases where RandFixedSum is faster (when
-generating a large number of vectors with the same constraints).
+DRS can be thought of as a generalised version of the UUnifast and
+RandFixedSum algorithms, and can be used as a replacement for both.
+Note that while RandFixedSum only supports symmetrical bounds (the
+same for each component of the vector), but may be faster than
+DRS when generating a large number of vectors with the same
+symmetric constraints.
 
-The algorithm is described in more detail in the publication
+The algorithm is described in more detail in the paper
 "Generating Utilization Vectors for the Systematic Evaluation of
 Schedulability Tests", published at RTSS 2020. The authors version
 can be found here: https://www-users.cs.york.ac.uk/~robdavis/papers/DRSRTSS2020.pdf
@@ -59,7 +60,7 @@ DRS is licensed under the MIT license.
 
 # Usage
 
-For general usage, there is only one function to consider
+For general use, there is only one function to consider
 
 ```python
 def drs(
@@ -72,10 +73,12 @@ def drs(
 
 The parameters are as follows
 
-* `n`: The number of values to generate
-* `sumu`: The target sum for the generated values
-* `upper_bounds`: An optional sequence of length `n` which gives the upper bounds on each returned value. If given, then `all(x <= y for x, y in zip(output, upper_bounds))`
-* `lower_bounds`: An optional sequence of length `n` which gives the lower bounds on each returned value. If given, then `all(x >= y for x, y in zip(output, lower_bounds))`
+* `n`: The number of elements to generate
+* `sumu`: The target sum for the generated elements
+* `upper_bounds`: An optional sequence of length `n` which gives the upper bounds on each returned value. If given, then `all(x <= y for x, y in zip(output, upper_bounds))`. If not provided, all upper bounds are set to `sumu`.
+* `lower_bounds`: An optional sequence of length `n` which gives the lower bounds on each returned value. If given, then `all(x >= y for x, y in zip(output, lower_bounds))` If not provided, all lower bounds are set to `0`.
+
+Invalid inputs are checked for and will result in a `ValueError` (e.g. if `sumu < sum(upper_bounds)`, or `upper_bounds[n] < lower_bounds[n]`).
 
 # Examples
 
