@@ -20,14 +20,14 @@ encoded in the initial point).
 DRS can be thought of as a generalised version of the UUnifast and
 RandFixedSum algorithms, and can be used as a replacement for both.
 Note that while RandFixedSum only supports symmetrical bounds (the
-same for each component of the vector), but may be faster than
+same for each component of the vector), it may be faster than
 DRS when generating a large number of vectors with the same
 symmetric constraints.
 
 The algorithm is described in more detail in the paper
 "Generating Utilization Vectors for the Systematic Evaluation of
 Schedulability Tests", published at RTSS 2020. The authors version
-can be found here: https://www-users.cs.york.ac.uk/~robdavis/papers/DRSRTSS2020.pdf
+can be found here: http://eprints.whiterose.ac.uk/167646/
 
 If you wish to cite this work, please use the following references:
 
@@ -78,7 +78,7 @@ The parameters are as follows
 * `upper_bounds`: An optional sequence of length `n` which gives the upper bounds on each returned value. If given, then `all(x <= y for x, y in zip(output, upper_bounds))`. If not provided, all upper bounds are set to `sumu`.
 * `lower_bounds`: An optional sequence of length `n` which gives the lower bounds on each returned value. If given, then `all(x >= y for x, y in zip(output, lower_bounds))` If not provided, all lower bounds are set to `0`.
 
-Invalid inputs are checked for and will result in a `ValueError` (e.g. if `sumu < sum(upper_bounds)`, or `upper_bounds[n] < lower_bounds[n]`).
+Invalid inputs are checked for and will result in a `ValueError` (e.g. if `sumu > sum(upper_bounds)`, or `upper_bounds[n] < lower_bounds[n]`).
 
 # Examples
 
