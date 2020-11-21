@@ -24,10 +24,7 @@ same for each component of the vector), it may be faster than
 DRS when generating a large number of vectors with the same
 symmetric constraints.
 
-The algorithm is described in more detail in the paper
-"Generating Utilization Vectors for the Systematic Evaluation of
-Schedulability Tests", published at RTSS 2020. The authors version
-can be found here: http://eprints.whiterose.ac.uk/167646/
+The algorithm is described in more detail in the paper "Generating Utilization Vectors for the Systematic Evaluation of Schedulability Tests", published at RTSS 2020. The authors version can be found here: http://eprints.whiterose.ac.uk/167646/ and a narrated presentation here: https://www.youtube.com/watch?v=mwkmXYXc28k
 
 If you wish to cite this work, please use the following references:
 
@@ -39,7 +36,7 @@ If you wish to cite this work, please use the following references:
   December 1-4, 2020},
   publisher = {{IEEE}},
   year = {2020},
-  url = {https://www-users.cs.york.ac.uk/~robdavis/papers/DRSRTSS2020.pdf}
+  url = {http://eprints.whiterose.ac.uk/167646/}
 }
 
 @software{david_griffin_2020_4118059,
@@ -110,3 +107,9 @@ Due to the amount of entropy in a floating point being finite, and DRS's nature 
 # Limits
 
 The maximum size of output vector DRS can produce is theoretically capped at 1015 for versions of Python that use 64-bit floats. In practice it's expected that this will be too computationally expensive for practical use. DRS has been tested to produce output vectors of up to size 200, however above 140 it may be necessary to use the optional mpmath support. Consult drs.py for more information.
+
+# libdrsc
+
+This repository also includes `build_libdrsc.py` which uses CFFI to produce a shared
+library to embded the DRS algorithm into any programming language that supports the C
+ABI. This is currently in testing and will be finalised in the next release.
