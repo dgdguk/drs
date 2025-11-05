@@ -1,5 +1,8 @@
 # drs
 
+> [!CAUTION]
+> Subsequent research has found that the Dirichlet-Rescale algorithm does not always return uniform values. Unless studying the effect of this, it is not recommended to use DRS. For an algorithm which provides an actual uniform sampler for the same problem, please use the [ConvolutionalFixedSum](https://github.com/dgdguk/convolutionalfixedsum/) algorithm. The associated research also includes information on how the non-uniformity present in DRS can be triggered.
+
 The Dirichlet-Rescale (DRS) algorithm is a method for generating
 vectors of random numbers such that:
 

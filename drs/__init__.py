@@ -22,6 +22,11 @@ See drs.py for more detailed documentation.
 
 from . import drs as drs_module
 from .drs import drs as drs
+import warnings
+
+warnings.warn(
+    "DRS is deprecated due to problems with the uniformity of returned values. "
+    "Please use the ConvolutionalFixedSum instead, which can provide a true uniform distribution.", DeprecationWarning)
 
 def set_epsilon(epsilon: float):
     """Set the EPSILON parameter. Results are accurate to within EPSILON"""
